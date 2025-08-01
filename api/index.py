@@ -4,6 +4,9 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import re
 from http.server import BaseHTTPRequestHandler
 import json
+import requests
+import time
+import random
 
 app = Flask(__name__)
 CORS(app)
@@ -25,6 +28,42 @@ def extract_video_id(url_or_id):
         # Assume it's already a video ID
         return url_or_id
 
+def get_transcript_with_retry(video_id, max_retries=3):
+    """Get transcript with retry logic and fallback methods"""
+    
+    # Method 1: Try direct API with delays
+    for attempt in range(max_retries):
+        try:
+            api = YouTubeTranscriptApi()
+            transcript = api.fetch(video_id, ['en'])
+            return transcript
+        except Exception as e:
+            if "blocked" in str(e).lower() or "ip" in str(e).lower():
+                # Add delay between retries
+                time.sleep(random.uniform(1, 3))
+                continue
+            else:
+                raise e
+    
+    # Method 2: Try with different language codes
+    try:
+        api = YouTubeTranscriptApi()
+        transcript = api.fetch(video_id, ['en', 'en-US', 'en-GB'])
+        return transcript
+    except Exception as e:
+        pass
+    
+    # Method 3: Try to get any available transcript
+    try:
+        api = YouTubeTranscriptApi()
+        transcript_list = api.list_transcripts(video_id)
+        transcript = transcript_list.find_transcript(['en', 'en-US', 'en-GB'])
+        return transcript.fetch()
+    except Exception as e:
+        pass
+    
+    raise Exception(f"Could not retrieve transcript after {max_retries} attempts. YouTube may be blocking requests from this IP.")
+
 @app.route('/transcript', methods=['GET'])
 def get_transcript():
     """Get transcript for a YouTube video"""
@@ -45,9 +84,8 @@ def get_transcript():
                 'error': 'Invalid YouTube URL or video ID'
             }), 400
         
-        # Get transcript using correct API method
-        api = YouTubeTranscriptApi()
-        transcript = api.fetch(video_id, ['en'])
+        # Get transcript with retry logic
+        transcript = get_transcript_with_retry(video_id)
         
         # Format the response
         formatted_transcript = []
@@ -67,7 +105,13 @@ def get_transcript():
     except Exception as e:
         return jsonify({
             'error': f'Failed to get transcript: {str(e)}',
-            'note': 'This might be due to YouTube API changes or network issues'
+            'note': 'This might be due to YouTube blocking requests from serverless functions. Consider using a proxy or the official YouTube API.',
+            'suggestions': [
+                'Use YouTube Data API v3 with an API key',
+                'Deploy to a VPS instead of serverless',
+                'Use a proxy service',
+                'Try the video ID in a browser to confirm transcript availability'
+            ]
         }), 500
 
 @app.route('/transcript/text', methods=['GET'])
@@ -90,9 +134,8 @@ def get_transcript_text():
                 'error': 'Invalid YouTube URL or video ID'
             }), 400
         
-        # Get transcript using correct API method
-        api = YouTubeTranscriptApi()
-        transcript = api.fetch(video_id, ['en'])
+        # Get transcript with retry logic
+        transcript = get_transcript_with_retry(video_id)
         
         # Combine all text
         full_text = ' '.join([snippet.text for snippet in transcript.snippets])
@@ -105,7 +148,13 @@ def get_transcript_text():
     except Exception as e:
         return jsonify({
             'error': f'Failed to get transcript: {str(e)}',
-            'note': 'This might be due to YouTube API changes or network issues'
+            'note': 'This might be due to YouTube blocking requests from serverless functions. Consider using a proxy or the official YouTube API.',
+            'suggestions': [
+                'Use YouTube Data API v3 with an API key',
+                'Deploy to a VPS instead of serverless',
+                'Use a proxy service',
+                'Try the video ID in a browser to confirm transcript availability'
+            ]
         }), 500
 
 @app.route('/', methods=['GET'])
@@ -128,7 +177,8 @@ def home():
         'examples': {
             'by_video_id': '/transcript?video_id=dQw4w9WgXcQ',
             'by_url': '/transcript?video_id=https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-        }
+        },
+        'note': 'Due to YouTube blocking serverless function IPs, this API may not work reliably. Consider using YouTube Data API v3 instead.'
     })
 
 # Vercel serverless function handler
@@ -207,9 +257,8 @@ def get_transcript_handler(request):
                 'error': 'Invalid YouTube URL or video ID'
             }, 400
         
-        # Get transcript using correct API method
-        api = YouTubeTranscriptApi()
-        transcript = api.fetch(video_id, ['en'])
+        # Get transcript with retry logic
+        transcript = get_transcript_with_retry(video_id)
         
         # Format the response
         formatted_transcript = []
@@ -229,7 +278,13 @@ def get_transcript_handler(request):
     except Exception as e:
         return {
             'error': f'Failed to get transcript: {str(e)}',
-            'note': 'This might be due to YouTube API changes or network issues'
+            'note': 'This might be due to YouTube blocking requests from serverless functions. Consider using a proxy or the official YouTube API.',
+            'suggestions': [
+                'Use YouTube Data API v3 with an API key',
+                'Deploy to a VPS instead of serverless',
+                'Use a proxy service',
+                'Try the video ID in a browser to confirm transcript availability'
+            ]
         }, 500
 
 def get_transcript_text_handler(request):
@@ -251,9 +306,8 @@ def get_transcript_text_handler(request):
                 'error': 'Invalid YouTube URL or video ID'
             }, 400
         
-        # Get transcript using correct API method
-        api = YouTubeTranscriptApi()
-        transcript = api.fetch(video_id, ['en'])
+        # Get transcript with retry logic
+        transcript = get_transcript_with_retry(video_id)
         
         # Combine all text
         full_text = ' '.join([snippet.text for snippet in transcript.snippets])
@@ -266,7 +320,13 @@ def get_transcript_text_handler(request):
     except Exception as e:
         return {
             'error': f'Failed to get transcript: {str(e)}',
-            'note': 'This might be due to YouTube API changes or network issues'
+            'note': 'This might be due to YouTube blocking requests from serverless functions. Consider using a proxy or the official YouTube API.',
+            'suggestions': [
+                'Use YouTube Data API v3 with an API key',
+                'Deploy to a VPS instead of serverless',
+                'Use a proxy service',
+                'Try the video ID in a browser to confirm transcript availability'
+            ]
         }, 500
 
 def home_handler():
@@ -288,5 +348,6 @@ def home_handler():
         'examples': {
             'by_video_id': '/transcript?video_id=dQw4w9WgXcQ',
             'by_url': '/transcript?video_id=https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-        }
+        },
+        'note': 'Due to YouTube blocking serverless function IPs, this API may not work reliably. Consider using YouTube Data API v3 instead.'
     } 
