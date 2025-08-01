@@ -1,106 +1,131 @@
-# YouTube Transcript Generator
+# YouTube Transcript API
 
-A simple Flask web application that generates transcripts from YouTube videos using the `youtube-transcript-api`.
+A serverless API to fetch YouTube video transcripts using the YouTube Transcript API.
 
-## Installation
+## Features
 
-1. Install the required dependencies:
+- Get transcript with timing information
+- Get transcript as plain text
+- Support for YouTube video IDs and URLs
+- CORS enabled for cross-origin requests
+
+## API Endpoints
+
+### 1. Get Transcript with Timing
+```
+GET /transcript?video_id=YOUR_VIDEO_ID_OR_URL
+```
+
+**Response:**
+```json
+{
+  "video_id": "A_fOHpBqj50",
+  "transcript": [
+    {
+      "text": "I've had this quote from the CEO of Anthropic",
+      "start": 0.0,
+      "duration": 1.85
+    }
+  ],
+  "total_entries": 1
+}
+```
+
+### 2. Get Transcript as Plain Text
+```
+GET /transcript/text?video_id=YOUR_VIDEO_ID_OR_URL
+```
+
+**Response:**
+```json
+{
+  "video_id": "A_fOHpBqj50",
+  "text": "I've had this quote from the CEO of Anthropic stuck in my head..."
+}
+```
+
+### 3. API Documentation
+```
+GET /
+```
+
+Returns API documentation and usage examples.
+
+## Examples
+
+### Using Video ID
+```
+GET /transcript?video_id=A_fOHpBqj50
+```
+
+### Using YouTube URL
+```
+GET /transcript?video_id=https://www.youtube.com/watch?v=A_fOHpBqj50
+```
+
+## Local Development
+
+1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
-
-1. Start the server:
+2. Run the Flask app:
 ```bash
 python app.py
 ```
 
-2. The server will run on `http://localhost:5000`
+3. The API will be available at `http://localhost:8000`
 
-## API Endpoints
+## Vercel Deployment
 
-### Home Page
-- **URL**: `http://localhost:5000/`
-- **Description**: Shows usage instructions and available endpoints
+This API is configured for Vercel serverless deployment.
 
-### Get Transcript
-- **URL**: `http://localhost:5000/gettranscript/<video_id>`
-- **Description**: Get transcript as JSON with metadata
-- **Example**: `http://localhost:5000/gettranscript/dQw4w9WgXcQ`
+### Deploy to Vercel
 
-### Get Transcript as Text
-- **URL**: `http://localhost:5000/gettranscript/<video_id>/text`
-- **Description**: Get transcript as plain text
-- **Example**: `http://localhost:5000/gettranscript/dQw4w9WgXcQ/text`
+1. Install Vercel CLI:
+```bash
+npm i -g vercel
+```
 
-### Get Transcript as Formatted JSON
-- **URL**: `http://localhost:5000/gettranscript/<video_id>/json`
-- **Description**: Get transcript as formatted JSON
-- **Example**: `http://localhost:5000/gettranscript/dQw4w9WgXcQ/json`
+2. Deploy:
+```bash
+vercel
+```
 
-### List Available Transcripts
-- **URL**: `http://localhost:5000/list-transcripts/<video_id>`
-- **Description**: List all available transcripts for a video
-- **Example**: `http://localhost:5000/list-transcripts/dQw4w9WgXcQ`
+3. Follow the prompts to deploy your API
 
-## Video ID Formats
+### Environment Variables
 
-You can use:
-- **Video ID only**: `dQw4w9WgXcQ`
-- **Full YouTube URL**: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
-- **Short URL**: `https://youtu.be/dQw4w9WgXcQ`
-- **Embed URL**: `https://www.youtube.com/embed/dQw4w9WgXcQ`
+No environment variables are required for this API.
 
-## Features
+## Usage in Other Applications
 
-- ✅ Extracts video ID from various YouTube URL formats
-- ✅ Returns transcripts in multiple formats (JSON, text, formatted JSON)
-- ✅ Handles errors gracefully
-- ✅ Lists available transcripts for a video
-- ✅ Defaults to English transcripts
-- ✅ Includes metadata (language, duration, etc.)
+Once deployed to Vercel, you can call the API from any application:
 
-## Example Response
+```javascript
+// Example JavaScript usage
+fetch('https://your-vercel-app.vercel.app/transcript?video_id=A_fOHpBqj50')
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
 
-```json
-{
-  "success": true,
-  "video_id": "dQw4w9WgXcQ",
-  "language": "English",
-  "language_code": "en",
-  "is_generated": false,
-  "snippet_count": 45,
-  "transcript": [
-    {
-      "text": "We're no strangers to love",
-      "start": 0.0,
-      "duration": 2.5
-    },
-    {
-      "text": "You know the rules and so do I",
-      "start": 2.5,
-      "duration": 3.2
-    }
-  ]
-}
+```python
+# Example Python usage
+import requests
+
+response = requests.get('https://your-vercel-app.vercel.app/transcript?video_id=A_fOHpBqj50')
+data = response.json()
+print(data)
 ```
 
 ## Error Handling
 
-The API returns error responses in JSON format:
+The API returns appropriate error messages for:
+- Missing video_id parameter
+- Invalid YouTube URL or video ID
+- YouTube API errors or network issues
 
-```json
-{
-  "success": false,
-  "error": "Error message here",
-  "video_id": "invalid_video_id"
-}
-```
+## CORS
 
-## Notes
-
-- The application defaults to English transcripts
-- Some videos may not have transcripts available
-- Age-restricted videos may not be accessible without authentication
-- The API may be rate-limited by YouTube 
+The API includes CORS headers to allow cross-origin requests from web applications. 

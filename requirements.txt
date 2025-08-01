@@ -1,2 +1,5 @@
-youtube-transcript-api
-flask 
+youtube-transcript-api==1.2.1
+flask==2.3.3
+flask-cors==4.0.0
+requests==2.31.0
+defusedxml==0.7.1 
